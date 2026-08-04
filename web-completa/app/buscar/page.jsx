@@ -1,10 +1,18 @@
 import { listBooks, searchAll, safe } from "../../lib/sl";
-import { BookCard } from "../page";
+import BookCard from "../../lib/BookCard";
 
 export const revalidate = 1800;
 export const metadata = { title: "Buscar - Mi Biblioteca" };
 
 const IDIOMAS = ["", "Latin", "German", "French", "English", "Italian", "Dutch", "Greek", "Arabic"];
+const CAMPO = {
+  padding: 9,
+  borderRadius: 8,
+  background: "#1f1e2a",
+  color: "#ece9f5",
+  border: "1px solid #2e2c3c",
+  fontFamily: "inherit",
+};
 
 export default async function Buscar({ searchParams }) {
   const sp = (await searchParams) || {};
@@ -33,21 +41,13 @@ export default async function Buscar({ searchParams }) {
           defaultValue={q}
           placeholder="alchemy, quintessence, Paracelsus..."
           aria-label="Consulta"
-          style={{
-            flex: "1 1 320px",
-            padding: "10px 12px",
-            borderRadius: 8,
-            border: "1px solid #2e2c3c",
-            background: "#1f1e2a",
-            color: "#ece9f5",
-            fontFamily: "inherit",
-          }}
+          style={{ ...CAMPO, flex: "1 1 320px", padding: "10px 12px" }}
         />
-        <select name="modo" defaultValue={modo} aria-label="Modo" style={{ padding: 9, borderRadius: 8, background: "#1f1e2a", color: "#ece9f5", border: "1px solid #2e2c3c" }}>
+        <select name="modo" defaultValue={modo} aria-label="Modo" style={CAMPO}>
           <option value="catalogo">Catalogo (titulo y autor)</option>
           <option value="texto">Texto completo (traducciones)</option>
         </select>
-        <select name="idioma" defaultValue={idioma} aria-label="Idioma" style={{ padding: 9, borderRadius: 8, background: "#1f1e2a", color: "#ece9f5", border: "1px solid #2e2c3c" }}>
+        <select name="idioma" defaultValue={idioma} aria-label="Idioma" style={CAMPO}>
           {IDIOMAS.map((l) => (
             <option key={l || "todos"} value={l}>{l || "Todos los idiomas"}</option>
           ))}
@@ -58,8 +58,8 @@ export default async function Buscar({ searchParams }) {
       {!q && (
         <p className="lead">
           El modo <b>catalogo</b> filtra por titulo y autor (rapido). El modo <b>texto completo</b> consulta
-          el indice de traducciones del servidor y puede tardar unos segundos; devuelve libros donde
-          aparece la expresion, no paginas sueltas.
+          el indice de traducciones del servidor: tarda unos segundos y devuelve libros donde aparece la
+          expresion, no pasajes sueltos. Para localizar la pagina exacta, usa la busqueda interna del lector.
         </p>
       )}
 
@@ -78,24 +78,32 @@ export default async function Buscar({ searchParams }) {
       {q && modo === "texto" && (
         <>
           <h2>Texto completo: {texto ? (texto.total || 0).toLocaleString("es") : 0} coincidencias</h2>
-          {!texto && <p className="error">La busqueda de texto no respondio. Intenta de nuevo en un momento.</p>}
-          {texto && (texto.results || []).map((r) => (
-            <div className="panel" key={r.id || r.bookId} style={{ marginBottom: 12 }}>
-              <h3>
-                <a href={"/libro/" + encodeURIComponent(r.slug || r.id || r.bookId)}>
-                  {r.display_title || r.title || "Sin titulo"}
-                </a>
-              </h3>
-              <p className="meta">{[r.author, r.published, r.language].filter(Boolean).join(" - ")}</p>
-              {r.snippet && <p style={{ fontSize: 15 }}>{String(r.snippet).slice(0, 400)}</p>}
-              <p className="meta">
-                <a href={"/libro/" + encodeURIComponent(r.slug || r.id || r.bookId) + "/leer?q=" + encodeURIComponent(q)}>
-                  Buscar esta expresion dentro del libro
-                </a>
-              </p>
-            </div>
-          ))}
-          {texto && !(texto.results || []).length && <p className="warn">Sin coincidencias en las traducciones.</p>}
+          {!texto && (
+            <p className="error">La busqueda de texto no respondio. Intentalo de nuevo en un momento.</p>
+          )}
+          {texto &&
+            (texto.results || []).map((r) => {
+              const ref = r.slug || r.id || r.bookId;
+              return (
+                <div className="panel" key={ref} style={{ marginBottom: 12 }}>
+                  <h3>
+                    <a href={"/libro/" + encodeURIComponent(ref)}>
+                      {r.display_title || r.title || "Sin titulo"}
+                    </a>
+                  </h3>
+                  <p className="meta">{[r.author, r.published, r.language].filter(Boolean).join(" - ")}</p>
+                  {r.snippet && <p style={{ fontSize: 15 }}>{String(r.snippet).slice(0, 400)}</p>}
+                  <p className="meta">
+                    <a href={"/libro/" + encodeURIComponent(ref) + "/leer?q=" + encodeURIComponent(q)}>
+                      Buscar esta expresion dentro del libro
+                    </a>
+                  </p>
+                </div>
+              );
+            })}
+          {texto && !(texto.results || []).length && (
+            <p className="warn">Sin coincidencias en las traducciones.</p>
+          )}
         </>
       )}
     </>
