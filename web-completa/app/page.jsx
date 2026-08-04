@@ -1,26 +1,7 @@
-import { listBooks, safe, proxyImage, pick } from "../lib/sl";
+import { listBooks, safe } from "../lib/sl";
+import BookCard from "../lib/BookCard";
 
 export const revalidate = 3600;
-
-export function BookCard({ book }) {
-  const cover = pick(book.thumbnail, book.image_thumb, book.image_display);
-  const href = "/libro/" + encodeURIComponent(book.slug || book.id);
-  const pct = book.translation_percent != null ? Math.round(book.translation_percent) : null;
-  return (
-    <a className="card" href={href}>
-      {cover ? <img src={proxyImage(cover, 400)} alt="" loading="lazy" /> : <div className="noimg" />}
-      <div className="cardBody">
-        <h3>{book.display_title || book.title}</h3>
-        <p className="meta">{[book.author, book.published].filter(Boolean).join(" - ")}</p>
-        <p className="meta">
-          {[book.language, (book.pages_count || 0) + " paginas", pct !== null ? pct + "% traducido" : null]
-            .filter(Boolean)
-            .join(" - ")}
-        </p>
-      </div>
-    </a>
-  );
-}
 
 export default async function Home() {
   const recientes = await safe(
@@ -77,7 +58,7 @@ export default async function Home() {
         </div>
         <div className="panel" style={{ flex: "1 1 260px" }}>
           <h3>Leer</h3>
-          <p className="meta">Imagen de la pagina, transcripcion original y traduccion, con cita lista para copiar.</p>
+          <p className="meta">Facsimil, transcripcion original y traduccion, con la cita lista para copiar.</p>
         </div>
         <div className="panel" style={{ flex: "1 1 260px" }}>
           <h3>Versiones</h3>
