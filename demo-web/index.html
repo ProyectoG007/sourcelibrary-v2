@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Source Library - demo autonoma</title>
+<!--
+  Demo autonoma de una web construida sobre las API publicas de Source Library.
+  Un solo archivo, sin dependencias, sin build, sin claves de API.
+  Como ejecutarla: ver demo-web/README.md
+-->
+<style>
+:root{--bg:#12100e;--panel:#1b1714;--line:#2f2823;--txt:#f3ece1;--dim:#a99b87;--gold:#c9a227}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--gold)}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+h1{font-size:17px;margin:0;letter-spacing:.02em}
+nav button,.btn{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px}
+nav button.on{background:var(--gold);color:#12100e;border-color:var(--gold);font-weight:600}
+.btn:hover,nav button:hover{border-color:var(--gold)}
+.wrap{padding:18px 20px 40px;max-width:1300px;margin:0 auto}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
+input,select{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:14px}
+input.grow{flex:1;min-width:220px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column}
+.card:hover{border-color:var(--gold)}
+.card img{width:100%;height:190px;object-fit:cover;background:#000;display:block}
+.card .body{padding:10px}
+.card .t{font-size:13px;font-weight:600;line-height:1.3}
+.card .m{font-size:11px;color:var(--dim);margin-top:4px}
+.badge{display:inline-block;margin-top:6px;font-size:10px;padding:2px 7px;border-radius:999px;background:#25331f;color:#a5cf8f}
+.reader{display:grid;grid-template-columns:330px 1fr 1fr;gap:20px;align-items:start}
+img.page{width:100%;border-radius:8px;border:1px solid var(--line);background:#000}
+.col h3{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin:0 0 8px}
+.col .txt{white-space:pre-wrap;font:15px/1.65 Georgia,"Times New Roman",serif}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 16px}
+.hit{border-bottom:1px solid var(--line);padding:9px 0;cursor:pointer;font-size:13px}
+.hit:hover{color:var(--gold)}
+.muted{color:var(--dim);font-size:12px}
+footer{border-top:1px solid var(--line);padding:16px 20px;color:var(--dim);font-size:12px;line-height:1.7}
+@media(max-width:980px){.reader{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Source Library &middot; demo autonoma</h1>
+  <nav id="nav">
+    <button data-v="catalog" class="on">Catalogo</button>
+    <button data-v="reader">Lector</button>
+    <button data-v="gallery">Galeria</button>
+  </nav>
+</header>
+<div class="wrap">
+
+  <section id="v-catalog">
+    <div class="filters">
+      <input class="grow" type="text" id="c-q" placeholder="Titulo o autor (ej: Fludd, alchemy, Durer)">
+      <select id="c-mode">
+        <option value="library">Filtrar catalogo</option>
+        <option value="relevance">Busqueda por relevancia</option>
+      </select>
+      <select id="c-lang"></select>
+      <select id="c-sort">
+        <option value="recent-translation">Traducidos recientemente</option>
+        <option value="recent">Anadidos recientemente</option>
+        <option value="title-asc">Titulo A-Z</option>
+      </select>
+      <label class="muted"><input type="checkbox" id="c-tr" checked> solo traducidos</label>
+      <button class="btn" id="c-go">Buscar</button>
+    </div>
+    <p class="muted" id="c-status"></p>
+    <div id="c-grid" class="grid"></div>
+    <p><button class="btn" id="c-more" hidden>Cargar mas</button></p>
+  </section>
+
+  <section id="v-reader" hidden>
+    <h2 id="r-title" style="margin:0 0 4px;font-size:20px">Elige un libro en el catalogo</h2>
+    <p class="muted" id="r-meta"></p>
+    <div class="bar">
+      <button class="btn" id="r-prev">&larr; anterior</button>
+      <input type="number" id="r-num" min="1" style="width:90px">
+      <button class="btn" id="r-goto">ir</button>
+      <button class="btn" id="r-next">siguiente &rarr;</button>
+      <span class="muted" id="r-pos"></span>
+      <select id="r-chap"></select>
+      <button class="btn" id="r-quote">Copiar cita de esta pagina</button>
+      <span class="muted" id="r-cite"></span>
+    </div>
+    <div class="bar">
+      <input type="text" id="r-q" placeholder="Buscar dentro de este libro">
+      <button class="btn" id="r-find">Buscar</button>
+    </div>
+    <div id="r-hits"></div>
+    <div class="reader">
+      <div><img class="page" id="r-img" alt=""></div>
+      <div class="col"><h3>Original (OCR)</h3><div class="txt" id="r-orig"></div></div>
+      <div class="col"><h3>Traduccion</h3><div class="txt" id="r-trad"></div></div>
+    </div>
+  </section>
+
+  <section id="v-gallery" hidden>
+    <div class="filters">
+      <input class="grow" type="text" id="g-q" placeholder="Buscar ilustraciones (ej: ouroboros, emblem, anatomy)">
+      <button class="btn" id="g-go">Buscar</button>
+    </div>
+    <div id="g-grid" class="grid"></div>
+  </section>
+
+</div>
+<footer>
+  Datos servidos por las API publicas de <a href="https://sourcelibrary.org" target="_blank" rel="noopener">sourcelibrary.org</a>.
+  Traducciones bajo CC BY-SA 4.0 con atribucion a Source Library; textos originales en dominio publico.
+  El uso del corpus para entrenamiento de IA esta reservado (ver la politica de TDM del sitio).
+</footer>
+<script>
+(function(){
+  // Base de la API: vacio = mismo origen (o el proxy local de serve.mjs).
+  var API = window.SL_API_BASE || "";
+  var LANGS = ["Latin","German","French","English","Greek","Italian","Spanish","Dutch","Hebrew","Arabic","Sanskrit","Chinese"];
+
+  function $(s){ return document.querySelector(s); }
+  function el(t,c){ var e=document.createElement(t); if(c) e.className=c; return e; }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(m){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m]; }); }
+  function pad4(n){ return String(n).padStart(4,"0"); }
+  function prox(url,w){ return API + "/api/image?url=" + encodeURIComponent(url) + "&w=" + w; }
+  function pageImg(bookId,n){ return "https://images.sourcelibrary.org/pages/" + bookId + "/" + pad4(n) + ".jpg"; }
+  function stripTags(s){ return String(s||"").replace(/<\/?[a-zA-Z][^>]*>/g,""); }
+
+  async function api(path){
+    var r;
+    try { r = await fetch(API + path); }
+    catch(e){ throw new Error("Red/CORS bloqueado. Sirve esta pagina con: node demo-web/serve.mjs"); }
+    if(!r.ok) throw new Error("HTTP " + r.status + " en " + path);
+    return r.json();
+  }
+
+  function show(v){
+    ["catalog","reader","gallery"].forEach(function(k){ $("#v-"+k).hidden = (k !== v); });
+    document.querySelectorAll("#nav button").forEach(function(b){ b.classList.toggle("on", b.dataset.v === v); });
+  }
+
+  // ---------- Catalogo ----------
+  var C = { skip: 0 };
+
+  function cardEl(b){
+    var thumb = b.image_thumb || b.thumbnail_blob || b.thumbnail || "";
+    var c = el("article","card");
+    c.innerHTML = '<img loading="lazy" src="' + (thumb ? esc(prox(thumb,400)) : "") + '" alt="">' +
+      '<div class="body"><div class="t">' + esc(b.display_title || b.title) + '</div>' +
+      '<div class="m">' + esc(b.author || "s/a") + " &middot; " + esc(b.language || "") + " &middot; " + esc(b.published || "") + '</div>' +
+      (b.translation_percent != null ? '<span class="badge">' + b.translation_percent + '% traducido</span>' : "") +
+      "</div>";
+    c.onclick = function(){ openBook(b.id || b._id, 1); };
+    return c;
+  }
+
+  async function loadCatalog(reset){
+    if(reset){ C.skip = 0; $("#c-grid").innerHTML = ""; }
+    var q = $("#c-q").value.trim();
+    var mode = $("#c-mode").value;
+    $("#c-status").textContent = "Cargando... (la busqueda global puede tardar unos segundos)";
+    try {
+      var books = [], total = 0;
+      if(mode === "relevance" && q){
+        var d = await api("/api/search?q=" + encodeURIComponent(q) + "&limit=24");
+        total = d.total || 0;
+        books = (d.results || []).filter(function(r){ return r.type === "book"; }).map(function(r){
+          return { id: r.book_id || r.id, title: r.title, display_title: r.display_title, author: r.author,
+                   language: r.language, published: r.published, thumbnail: r.thumbnail_blob || r.thumbnail,
+                   translation_percent: r.page_count ? Math.round(100 * (r.translated_count || 0) / r.page_count) : null };
+        });
+        $("#c-more").hidden = true;
+      } else {
+        var p = "/api/books/library?limit=24&skip=" + C.skip + "&sort=" + encodeURIComponent($("#c-sort").value);
+        if($("#c-tr").checked) p += "&has_translation=true";
+        if($("#c-lang").value) p += "&language=" + encodeURIComponent($("#c-lang").value);
+        if(q) p += "&search=" + encodeURIComponent(q);
+        var d2 = await api(p);
+        books = d2.books || [];
+        total = d2.total || 0;
+        C.skip += books.length;
+        $("#c-more").hidden = C.skip >= total;
+      }
+      books.forEach(function(b){ $("#c-grid").appendChild(cardEl(b)); });
+      $("#c-status").textContent = total + " libros encontrados";
+      if(!total) $("#c-status").textContent = "Sin resultados";
+    } catch(e){ $("#c-status").textContent = "Error: " + e.message; }
+  }
+
+  // ---------- Lector ----------
+  var R = { id: null, meta: null, page: 1, total: 1 };
+
+  async function openBook(id, page){
+    show("reader");
+    window.scrollTo({ top: 0 });
+    $("#r-title").textContent = "Cargando...";
+    $("#r-hits").innerHTML = ""; $("#r-cite").textContent = "";
+    try {
+      R.id = id;
+      R.meta = await api("/api/books/" + id);
+      R.total = R.meta.pages_count || 1;
+      R.page = Math.min(Math.max(1, page || 1), R.total);
+      $("#r-title").textContent = R.meta.display_title || R.meta.title || "";
+      $("#r-meta").textContent = [R.meta.author, R.meta.language, R.meta.published,
+        R.total + " paginas", (R.meta.pages_translated || 0) + " traducidas"].filter(Boolean).join("  \u00b7  ");
+      var chaps = R.meta.chapters || [];
+      var sel = $("#r-chap");
+      sel.innerHTML = "";
+      var o0 = el("option"); o0.value = ""; o0.textContent = "Capitulos (" + chaps.length + ")"; sel.appendChild(o0);
+      chaps.forEach(function(ch){
+        var o = el("option"); o.value = ch.pageNumber;
+        o.textContent = (ch.titleEn || ch.title || "cap.") + "  p." + ch.pageNumber;
+        sel.appendChild(o);
+      });
+      loadPage();
+    } catch(e){ $("#r-title").textContent = "Error: " + e.message; }
+  }
+
+  async function loadPage(){
+    if(!R.id) return;
+    $("#r-pos").textContent = "pagina " + R.page + " de " + R.total;
+    $("#r-num").value = R.page;
+    $("#r-orig").textContent = "cargando...";
+    $("#r-trad").textContent = "cargando...";
+    var im = $("#r-img");
+    im.style.display = "";
+    im.onerror = function(){ im.style.display = "none"; };
+    im.src = prox(pageImg(R.id, R.page), 700);
+    try {
+      var d = await api("/api/books/" + R.id + "/text?from=" + R.page + "&to=" + R.page + "&content=both");
+      var p = (d.pages || [])[0] || {};
+      $("#r-orig").textContent = stripTags(p.ocr) || "(esta pagina no tiene OCR todavia)";
+      $("#r-trad").textContent = p.translation || "(esta pagina no esta traducida todavia)";
+    } catch(e){
+      $("#r-orig").textContent = "";
+      $("#r-trad").textContent = "Error: " + e.message;
+    }
+  }
+
+  async function copyQuote(){
+    if(!R.id) return;
+    $("#r-cite").textContent = "pidiendo cita...";
+    try {
+      var d = await api("/api/books/" + R.id + "/quote?page=" + R.page);
+      var c = d.citation || {};
+      var link = c.short_url || c.url || "";
+      var text = ((d.quote && d.quote.translation) || "").trim();
+      var payload = text + "\n\n" + (c.inline || "") + "\n" + link;
+      try { await navigator.clipboard.writeText(payload); } catch(err){ /* sin permiso de portapapeles */ }
+      $("#r-cite").innerHTML = "cita lista &middot; <a href=\"" + esc(link) + "\" target=\"_blank\" rel=\"noopener\">" + esc(link) + "</a>";
+    } catch(e){ $("#r-cite").textContent = "Error: " + e.message; }
+  }
+
+  async function findInBook(){
+    if(!R.id) return;
+    var q = $("#r-q").value.trim();
+    if(!q) return;
+    $("#r-hits").innerHTML = '<p class="muted">buscando...</p>';
+    try {
+      var d = await api("/api/books/" + R.id + "/search?q=" + encodeURIComponent(q));
+      var box = el("div");
+      var head = el("p","muted");
+      head.textContent = (d.total || 0) + " coincidencias (" + (d.translationPages || 0) + " en traduccion, " + (d.ocrPages || 0) + " en OCR)";
+      box.appendChild(head);
+      (d.results || []).slice(0,40).forEach(function(r){
+        var sn = (r.matches && r.matches[0] && r.matches[0].snippet) || "";
+        var h = el("div","hit");
+        h.innerHTML = "<strong>p. " + esc(r.pageNumber) + "</strong> &mdash; " + esc(sn);
+        h.onclick = function(){ R.page = r.pageNumber; loadPage(); window.scrollTo({ top: 0 }); };
+        box.appendChild(h);
+      });
+      $("#r-hits").innerHTML = "";
+      $("#r-hits").appendChild(box);
+    } catch(e){ $("#r-hits").textContent = "Error: " + e.message; }
+  }
+
+  // ---------- Galeria ----------
+  async function loadGallery(){
+    var q = $("#g-q").value.trim();
+    $("#g-grid").innerHTML = '<p class="muted">cargando...</p>';
+    try {
+      var d = await api("/api/gallery?limit=24" + (q ? "&query=" + encodeURIComponent(q) : ""));
+      var items = d.items || d.images || [];
+      $("#g-grid").innerHTML = "";
+      items.forEach(function(it){
+        var c = el("article","card");
+        c.innerHTML = '<img loading="lazy" src="' + esc(prox(it.imageUrl, 400)) + '" alt="">' +
+          '<div class="body"><div class="t">' + esc(it.bookTitle || it.title || "sin titulo") + '</div>' +
+          '<div class="m">' + esc(it.author || "") + " &middot; " + esc(it.year || "") +
+          (it.pageNumber != null ? " &middot; p." + esc(it.pageNumber) : "") + '</div></div>';
+        c.onclick = function(){ if(it.bookId) openBook(it.bookId, it.pageNumber || 1); };
+        $("#g-grid").appendChild(c);
+      });
+      if(!items.length) $("#g-grid").innerHTML = '<p class="muted">sin resultados</p>';
+    } catch(e){ $("#g-grid").textContent = "Error: " + e.message; }
+  }
+
+  // ---------- Eventos ----------
+  var ls = $("#c-lang");
+  var oAll = el("option"); oAll.value = ""; oAll.textContent = "Todos los idiomas"; ls.appendChild(oAll);
+  LANGS.forEach(function(l){ var o = el("option"); o.value = l; o.textContent = l; ls.appendChild(o); });
+
+  document.querySelectorAll("#nav button").forEach(function(b){
+    b.onclick = function(){
+      show(b.dataset.v);
+      if(b.dataset.v === "gallery" && !$("#g-grid").children.length) loadGallery();
+    };
+  });
+  $("#c-go").onclick = function(){ loadCatalog(true); };
+  $("#c-q").addEventListener("keydown", function(e){ if(e.key === "Enter") loadCatalog(true); });
+  $("#c-mode").onchange = function(){ loadCatalog(true); };
+  $("#c-lang").onchange = function(){ loadCatalog(true); };
+  $("#c-sort").onchange = function(){ loadCatalog(true); };
+  $("#c-tr").onchange = function(){ loadCatalog(true); };
+  $("#c-more").onclick = function(){ loadCatalog(false); };
+  $("#r-prev").onclick = function(){ if(R.page > 1){ R.page--; loadPage(); } };
+  $("#r-next").onclick = function(){ if(R.page < R.total){ R.page++; loadPage(); } };
+  $("#r-goto").onclick = function(){ var n = parseInt($("#r-num").value,10); if(n >= 1 && n <= R.total){ R.page = n; loadPage(); } };
+  $("#r-chap").onchange = function(){ var v = parseInt(this.value,10); if(v){ R.page = v; loadPage(); } };
+  $("#r-quote").onclick = copyQuote;
+  $("#r-find").onclick = findInBook;
+  $("#r-q").addEventListener("keydown", function(e){ if(e.key === "Enter") findInBook(); });
+  $("#g-go").onclick = loadGallery;
+  $("#g-q").addEventListener("keydown", function(e){ if(e.key === "Enter") loadGallery(); });
+
+  loadCatalog(true);
+})();
+</script>
+</body>
+</html>
