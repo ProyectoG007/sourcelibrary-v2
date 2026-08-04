@@ -238,3 +238,27 @@ Si en vez de una web propia quieres un **reading room dentro de la plataforma**,
 - [ ] Sin secretos en el código
 - [ ] Auditoría de fuga entre tenants pasada
 - [ ] PR con alcance descrito (qué entra y qué no)
+
+---
+
+## 7. Las dos webs que ya estan en este fork
+
+| Carpeta | Que es | Como se arranca |
+|---|---|---|
+| `demo-web/` | version autonoma: un solo HTML + un proxy Node de 80 lineas | `node demo-web/serve.mjs` y abrir `http://localhost:8787` |
+| `web-completa/` | version completa en Next.js: rutas, cache ISR, ficha de libro, lector bilingue, **versiones/ediciones con DOI** y galeria | `cd web-completa && npm install && npm run dev` |
+
+Las dos leen **solo** el API publico de `sourcelibrary.org`: no necesitan MongoDB, ni
+clave de Gemini, ni Vercel Blob. La diferencia clave es donde ocurre el `fetch`:
+
+- En `demo-web/` lo hace el navegador, y como el API no envia cabeceras CORS hay que
+  pasar por el proxy incluido (abrir el HTML con doble clic no funciona).
+- En `web-completa/` lo hace el servidor de Next.js, asi que no hay CORS y ademas el
+  resultado se cachea (`revalidate`): la cuota de lectura se gasta por cache, no por visitante.
+
+Limites que se aplican a las dos: lectura anonima de unas **500 paginas cada 24 h**
+(`429` con `retry-after: 3600`), nada de escritura sin sesion de editor, y las colecciones
+privadas de socios no salen en el API publico. Las traducciones son **CC BY-SA 4.0** con
+atribucion a Source Library y con el uso para entrenamiento de IA reservado.
+
+Detalle completo de rutas y despliegue: `web-completa/README.md` y `demo-web/README.md`.
