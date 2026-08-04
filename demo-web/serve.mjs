@@ -3,6 +3,7 @@
 //   node demo-web/serve.mjs        ->  http://localhost:8080
 //   PORT=3001 node demo-web/serve.mjs
 //   SL_UPSTREAM=http://localhost:3000 node demo-web/serve.mjs   (contra tu propia instancia)
+//   SL_API_KEY=xxx node demo-web/serve.mjs   (sube el cupo de lectura si tienes clave)
 //
 // Por que hace falta: el navegador bloquea por CORS las llamadas a la API
 // desde otro dominio. Este proceso sirve el HTML y reenvia /api/* al upstream,
@@ -39,7 +40,13 @@ const server = createServer(async (req, res) => {
   if (url.pathname.startsWith('/api/')) {
     try {
       const upstream = await fetch(UPSTREAM + url.pathname + url.search, {
-        headers: { 'user-agent': 'sourcelibrary-demo-web/1.0', accept: '*/*' },
+        headers: {
+          'user-agent': 'sourcelibrary-demo-web/1.0',
+          accept: '*/*',
+          // Clave opcional para subir el cupo de lectura. Se toma del entorno,
+          // nunca del codigo ni del navegador:  SL_API_KEY=... node demo-web/serve.mjs
+          ...(process.env.SL_API_KEY ? { authorization: 'Bearer ' + process.env.SL_API_KEY } : {}),
+        },
       });
       const body = Buffer.from(await upstream.arrayBuffer());
       res.writeHead(upstream.status, {
