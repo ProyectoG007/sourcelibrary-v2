@@ -113,6 +113,7 @@ footer{border-top:1px solid var(--line);padding:16px 20px;color:var(--dim);font-
   Datos servidos por las API publicas de <a href="https://sourcelibrary.org" target="_blank" rel="noopener">sourcelibrary.org</a>.
   Traducciones bajo CC BY-SA 4.0 con atribucion a Source Library; textos originales en dominio publico.
   El uso del corpus para entrenamiento de IA esta reservado (ver la politica de TDM del sitio).
+  Lectura de texto completo sin identificarse: 500 paginas cada 24 h (HTTP 429 al pasarse).
 </footer>
 <script>
 (function(){
@@ -132,6 +133,12 @@ footer{border-top:1px solid var(--line);padding:16px 20px;color:var(--dim);font-
     var r;
     try { r = await fetch(API + path); }
     catch(e){ throw new Error("Red/CORS bloqueado. Sirve esta pagina con: node demo-web/serve.mjs"); }
+    if(r.status === 429){
+      var info = {};
+      try { info = await r.json(); } catch(e2){}
+      var wait = r.headers.get("retry-after");
+      throw new Error((info.error || "Limite de lectura diario alcanzado") + (wait ? " Reintenta en " + wait + " s." : ""));
+    }
     if(!r.ok) throw new Error("HTTP " + r.status + " en " + path);
     return r.json();
   }
